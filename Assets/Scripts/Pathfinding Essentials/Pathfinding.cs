@@ -4,11 +4,18 @@ using UnityEngine;
 
 public class Pathfinding : MonoBehaviour
 {
+    public Transform seeker, target;
     private GridManager _grid;
     private void Awake()
     {
         _grid = GetComponent<GridManager>();
     }
+
+    private void Update()
+    {
+        FindPath(seeker.position, target.position);   
+    }
+
     public void FindPath(Vector2 startPos, Vector2 targetPos)
     {
         Node startNode = _grid.GetNodeFromWorldPoint(startPos);
@@ -33,6 +40,7 @@ public class Pathfinding : MonoBehaviour
             closedSet.Add(currentNode);
             if (currentNode == targetNode)
             {
+                RetracePath(startNode, targetNode);
                 return;
             }
 
@@ -42,15 +50,33 @@ public class Pathfinding : MonoBehaviour
                 {
                     continue;
                 }
+
                 int newMovementCostToNeighbour = currentNode.gCost + GetDistance(currentNode, neighbour);
                 if (newMovementCostToNeighbour < neighbour.gCost || !openSet.Contains(neighbour))
                 {
                     neighbour.gCost = newMovementCostToNeighbour;
                     neighbour.hCost = GetDistance(neighbour, targetNode);
                     neighbour.parent = currentNode;
+
+                    if (!openSet.Contains(neighbour))
+                        openSet.Add(neighbour);
                 }
             }
         }
+    }
+
+    private void RetracePath(Node startNode, Node endNode)
+    {
+        List<Node> path = new List<Node>();
+        Node currentNode = endNode;
+        while (currentNode != startNode)
+        {
+            path.Add(currentNode);
+            currentNode = currentNode.parent;
+        }
+        path.Reverse();
+
+        _grid.path = path;
     }
 
     private int GetDistance(Node nodeA, Node nodeB)
