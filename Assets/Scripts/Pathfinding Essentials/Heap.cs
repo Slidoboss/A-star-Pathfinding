@@ -12,6 +12,7 @@ public class Heap<T> where T : IHeapItem<T>
     {
         _items = new T[maxHeapSize];
     }
+
     public int Count
     {
         get { return _currentItemCount; }
@@ -25,7 +26,7 @@ public class Heap<T> where T : IHeapItem<T>
         _currentItemCount++;
     }
 
-    public T RemoveFirst(T item)
+    public T RemoveFirst()
     {
         T firstItem = _items[0];
         _currentItemCount--;
