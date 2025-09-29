@@ -20,6 +20,11 @@ public class GridManager : MonoBehaviour
       CreateGrid();
    }
 
+   public int MaxSize
+   {
+      get { return _gridSizeX * _gridSizeY; }
+   }
+
    private void CreateGrid()
    {
       _grid = new Node[_gridSizeX, _gridSizeY];
