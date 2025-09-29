@@ -39,6 +39,11 @@ public class Heap<T> where T : IHeapItem<T>
         return Equals(_items[item.HeapIndex], item);
     }
 
+    public void UpdateItem(T item)
+    {
+        SortUp(item);
+    }
+
     private void SortUp(T item)
     {
         int parentItemIndex = (item.HeapIndex - 1) / 2;
