@@ -2,11 +2,12 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Node
+public class Node : IHeapItem<Node>
 {
    private bool _walkable;
    private Vector2 _worldPosition;
    private int _gridX, _gridY;
+   private int _heapIndex;
 
    //gcost is how many units away the node is from the start node through the last expolored path.
    //hcost is  how many units away the node is from the end node through the last expolored path.
@@ -38,5 +39,21 @@ public class Node
       _worldPosition = worldPosition;
       _gridX = gridX;
       _gridY = gridY;
+   }
+
+   public int HeapIndex
+   {
+      get { return _heapIndex; }
+      set { _heapIndex = value; }
+   }
+
+   public int CompareTo(Node nodeToCompare)
+   {
+      int compare = fCost.CompareTo(nodeToCompare.fCost);
+      if (compare == 0)
+      {
+         compare = hCost.CompareTo(nodeToCompare.hCost);
+      }
+      return -compare;
    }
 }
