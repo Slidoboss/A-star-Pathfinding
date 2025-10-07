@@ -5,6 +5,7 @@ using UnityEngine;
 
 public class GridManager : MonoBehaviour
 {
+   public bool displayGridGizmos;
    [SerializeField] private LayerMask _unwalkable;
    [SerializeField] private Vector2 _gridWorldSize;
    [SerializeField] private float _nodeSize;
@@ -77,25 +78,16 @@ public class GridManager : MonoBehaviour
       return _grid[x, y];
    }
 
-   public List<Node> path;
-
    void OnDrawGizmos()
    {
       Gizmos.color = Color.red;
       Gizmos.DrawWireCube(transform.position, _gridWorldSize);
 
-      if (_grid != null)
+      if (_grid != null && displayGridGizmos)
       {
          foreach (Node node in _grid)
          {
             Gizmos.color = node.Walkable ? Color.white : Color.red;
-            if (path != null)
-            {
-               if (path.Contains(node))
-               {
-                  Gizmos.color = Color.blue;
-               }
-            }
             Gizmos.DrawCube(node.WorldPosition, Vector2.one * _halfNodeSize * 1.9f);
          }
       }
