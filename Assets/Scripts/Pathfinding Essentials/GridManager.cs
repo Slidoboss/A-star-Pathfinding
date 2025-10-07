@@ -14,7 +14,7 @@ public class GridManager : MonoBehaviour
    private int _gridSizeX;
    private int _gridSizeY;
 
-   private void Start()
+   private void Awake()
    {
       _gridSizeX = Mathf.RoundToInt(_gridWorldSize.x / _nodeSize);
       _gridSizeY = Mathf.RoundToInt(_gridWorldSize.y / _nodeSize);
