@@ -1,18 +1,13 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class PathRequestManager : MonoBehaviour
 {
-    // Start is called before the first frame update
-    void Start()
+    Queue<PathRequest> _pathRequestsQueue = new Queue<PathRequest>();
+    public static void RequestPath(Vector2 pathStart, Vector2 pathEnd, Action<Vector2[], bool> callback)
     {
-        
-    }
 
-    // Update is called once per frame
-    void Update()
-    {
-        
     }
 }
