@@ -8,6 +8,12 @@ public class Node : IHeapItem<Node>
    private Vector2 _worldPosition;
    private int _gridX, _gridY;
    private int _heapIndex;
+   private int _movementPenalty;//Added this for the weights part
+   public int MovementPenalty//Added this for the weights part
+   {
+      get { return _movementPenalty; }
+      set { _movementPenalty = value; }
+   }
 
    //gcost is how many units away the node is from the start node through the last expolored path.
    //hcost is  how many units away the node is from the end node through the last expolored path.
@@ -33,12 +39,13 @@ public class Node : IHeapItem<Node>
       get { return _gridY; }
    }
    #endregion
-   public Node(bool walkable, Vector2 worldPosition, int gridX, int gridY)
+   public Node(bool walkable, Vector2 worldPosition, int gridX, int gridY, int movementPenalty)
    {
       _walkable = walkable;
       _worldPosition = worldPosition;
       _gridX = gridX;
       _gridY = gridY;
+      _movementPenalty = movementPenalty; //Added this for the weights part
    }
 
    public int HeapIndex

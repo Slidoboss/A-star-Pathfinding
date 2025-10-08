@@ -9,15 +9,26 @@ public class GridManager : MonoBehaviour
    [SerializeField] private LayerMask _unwalkable;
    [SerializeField] private Vector2 _gridWorldSize;
    [SerializeField] private float _nodeSize;
+   private LayerMask _walkableMask;
    private float _halfNodeSize;
    private Node[,] _grid;
    private int _gridSizeX;
    private int _gridSizeY;
+   private Dictionary<int, int> _walkableRegionsDictionary = new Dictionary<int, int>();
+
+   [Header("Terrain List")] //This stops one stupid editor error from occuring. If you no believe try remove am.
+   public TerrainType[] walkableRegions; //Added this for the weights part
+
 
    private void Awake()
    {
       _gridSizeX = Mathf.RoundToInt(_gridWorldSize.x / _nodeSize);
       _gridSizeY = Mathf.RoundToInt(_gridWorldSize.y / _nodeSize);
+      foreach (TerrainType region in walkableRegions)
+      {
+         _walkableMask.value |= region.terrainMask.value;
+         _walkableRegionsDictionary.Add((int)Mathf.Log(region.terrainMask.value, 2), region.penalty);
+      }
       CreateGrid();
    }
 
@@ -39,7 +50,21 @@ public class GridManager : MonoBehaviour
          {
             Vector2 nodePointInWorld = worldBottomLeftPos + Vector2.right * (x * _nodeSize + _halfNodeSize) + Vector2.up * (y * _nodeSize + _halfNodeSize);
             bool walkable = !Physics2D.OverlapBox(nodePointInWorld, halfNodeSize, 0, _unwalkable);
-            _grid[x, y] = new Node(walkable, nodePointInWorld, x, y);
+
+            int movementPenalty = 0;
+            if (walkable)
+            {
+               RaycastHit2D hit = Physics2D.BoxCast(nodePointInWorld, halfNodeSize, 0, Vector2.zero, 0f, _walkableMask);
+               if (hit.collider != null)
+               {
+                  _walkableRegionsDictionary.TryGetValue(hit.collider.gameObject.layer, out movementPenalty);
+               }
+               else
+               {
+                  Debug.Log("Walkable regions not seen!");
+               }
+            }
+            _grid[x, y] = new Node(walkable, nodePointInWorld, x, y, movementPenalty);
          }
       }
    }
@@ -92,4 +117,5 @@ public class GridManager : MonoBehaviour
          }
       }
    }
+
 }
