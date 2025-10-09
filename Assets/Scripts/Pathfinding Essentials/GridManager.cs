@@ -9,12 +9,16 @@ public class GridManager : MonoBehaviour
    [SerializeField] private LayerMask _unwalkable;
    [SerializeField] private Vector2 _gridWorldSize;
    [SerializeField] private float _nodeSize;
+   [SerializeField][Range(0, 100)] private int _blurAmount = 3;
    private LayerMask _walkableMask;
    private float _halfNodeSize;
    private Node[,] _grid;
    private int _gridSizeX;
    private int _gridSizeY;
    private Dictionary<int, int> _walkableRegionsDictionary = new Dictionary<int, int>();
+
+   private int penaltyMin = int.MaxValue;
+   private int penaltyMax = int.MinValue;
 
    [Header("Terrain List")] //This stops one stupid editor error from occuring. If you no believe try remove am.
    public TerrainType[] walkableRegions; //Added this for the weights part
@@ -54,10 +58,10 @@ public class GridManager : MonoBehaviour
             int movementPenalty = 0;
             if (walkable)
             {
-               RaycastHit2D hit = Physics2D.BoxCast(nodePointInWorld, halfNodeSize, 0, Vector2.zero, 0f, _walkableMask);
-               if (hit.collider != null)
+               Collider2D collider = Physics2D.OverlapPoint(nodePointInWorld, _walkableMask);
+               if (collider != null)
                {
-                  _walkableRegionsDictionary.TryGetValue(hit.collider.gameObject.layer, out movementPenalty);
+                  _walkableRegionsDictionary.TryGetValue(collider.gameObject.layer, out movementPenalty);
                }
                else
                {
@@ -65,6 +69,58 @@ public class GridManager : MonoBehaviour
                }
             }
             _grid[x, y] = new Node(walkable, nodePointInWorld, x, y, movementPenalty);
+         }
+      }
+      BlurPenaltyMap(_blurAmount);
+   }
+
+   private void BlurPenaltyMap(int blurSize)
+   {
+      int kernelSize = blurSize * 2 + 1;
+      int kernelExtents = (kernelSize - 1) / 2;
+
+      int[,] penaltiesHorizontalPass = new int[_gridSizeX, _gridSizeY];
+      int[,] penaltiesVerticalPass = new int[_gridSizeX, _gridSizeY];
+
+      for (int y = 0; y < _gridSizeY; y++)
+      {
+         for (int x = -kernelExtents; x <= kernelExtents; x++)
+         {
+            int sampleX = Mathf.Clamp(x, 0, kernelExtents);
+            penaltiesHorizontalPass[0, y] += _grid[sampleX, y].MovementPenalty;
+         }
+         for (int x = 1; x < _gridSizeX; x++)
+         {
+            int removeIndex = Mathf.Clamp(x - kernelExtents - 1, 0, _gridSizeX);
+            int addIndex = Mathf.Clamp(x + kernelExtents, 0, _gridSizeX - 1);
+            penaltiesHorizontalPass[x, y] = penaltiesHorizontalPass[x - 1, y] - _grid[removeIndex, y].MovementPenalty + _grid[addIndex, y].MovementPenalty; //The Formula.
+         }
+      }
+      for (int x = 0; x < _gridSizeX; x++)
+      {
+         for (int y = -kernelExtents; y <= kernelExtents; y++)
+         {
+            int sampleY = Mathf.Clamp(y, 0, kernelExtents);
+            penaltiesVerticalPass[x, 0] += penaltiesHorizontalPass[x, sampleY];
+         }
+         for (int y = 1; y < _gridSizeY; y++)
+         {
+            int removeIndex = Mathf.Clamp(y - kernelExtents - 1, 0, _gridSizeY);
+            int addIndex = Mathf.Clamp(y + kernelExtents, 0, _gridSizeY - 1);
+            penaltiesVerticalPass[x, y] = penaltiesVerticalPass[x, y - 1] - penaltiesHorizontalPass[x, removeIndex] + penaltiesHorizontalPass[x, addIndex]; //The Formula.
+            int blurredPenalty = Mathf.RoundToInt((float)penaltiesVerticalPass[x, y] / (kernelSize * kernelSize));
+            _grid[x, y].MovementPenalty = blurredPenalty;
+
+            #region DEBUG ZONE
+            if (blurredPenalty > penaltyMax)
+            {
+               penaltyMax = blurredPenalty;
+            }
+            if (blurredPenalty < penaltyMin)
+            {
+               penaltyMin = blurredPenalty;
+            }
+            #endregion
          }
       }
    }
@@ -112,8 +168,9 @@ public class GridManager : MonoBehaviour
       {
          foreach (Node node in _grid)
          {
-            Gizmos.color = node.Walkable ? Color.white : Color.red;
-            Gizmos.DrawCube(node.WorldPosition, Vector2.one * _halfNodeSize * 1.9f);
+            Gizmos.color = Color.Lerp(Color.white, Color.black, Mathf.InverseLerp(penaltyMin, penaltyMax, node.MovementPenalty));
+            Gizmos.color = node.Walkable ? Gizmos.color : Color.red;
+            Gizmos.DrawCube(node.WorldPosition, Vector2.one); //* _halfNodeSize * 1.9f);
          }
       }
    }
