@@ -10,6 +10,7 @@ public class GridManager : MonoBehaviour
    [SerializeField] private Vector2 _gridWorldSize;
    [SerializeField] private float _nodeSize;
    [SerializeField][Range(0, 100)] private int _blurAmount = 3;
+   [SerializeField] private int _obstacleProximityPenalty = 20;
    private LayerMask _walkableMask;
    private float _halfNodeSize;
    private Node[,] _grid;
@@ -56,18 +57,16 @@ public class GridManager : MonoBehaviour
             bool walkable = !Physics2D.OverlapBox(nodePointInWorld, halfNodeSize, 0, _unwalkable);
 
             int movementPenalty = 0;
-            if (walkable)
+            Collider2D collider = Physics2D.OverlapPoint(nodePointInWorld, _walkableMask);
+            if (collider != null)
             {
-               Collider2D collider = Physics2D.OverlapPoint(nodePointInWorld, _walkableMask);
-               if (collider != null)
-               {
-                  _walkableRegionsDictionary.TryGetValue(collider.gameObject.layer, out movementPenalty);
-               }
-               else
-               {
-                  Debug.Log("Walkable regions not seen!");
-               }
+               _walkableRegionsDictionary.TryGetValue(collider.gameObject.layer, out movementPenalty);
             }
+            if (!walkable)
+            {
+               movementPenalty += _obstacleProximityPenalty;
+            }
+
             _grid[x, y] = new Node(walkable, nodePointInWorld, x, y, movementPenalty);
          }
       }
@@ -76,7 +75,7 @@ public class GridManager : MonoBehaviour
 
    private void BlurPenaltyMap(int blurSize)
    {
-      int kernelSize = blurSize * 2 + 1;
+      int kernelSize = blurSize * 2 + 1; //Done to always get odd number.
       int kernelExtents = (kernelSize - 1) / 2;
 
       int[,] penaltiesHorizontalPass = new int[_gridSizeX, _gridSizeY];
@@ -103,12 +102,16 @@ public class GridManager : MonoBehaviour
             int sampleY = Mathf.Clamp(y, 0, kernelExtents);
             penaltiesVerticalPass[x, 0] += penaltiesHorizontalPass[x, sampleY];
          }
+
+         int blurredPenalty = Mathf.RoundToInt((float)penaltiesVerticalPass[x, 0] / (kernelSize * kernelSize));
+         _grid[x, 0].MovementPenalty = blurredPenalty;
+
          for (int y = 1; y < _gridSizeY; y++)
          {
             int removeIndex = Mathf.Clamp(y - kernelExtents - 1, 0, _gridSizeY);
             int addIndex = Mathf.Clamp(y + kernelExtents, 0, _gridSizeY - 1);
             penaltiesVerticalPass[x, y] = penaltiesVerticalPass[x, y - 1] - penaltiesHorizontalPass[x, removeIndex] + penaltiesHorizontalPass[x, addIndex]; //The Formula.
-            int blurredPenalty = Mathf.RoundToInt((float)penaltiesVerticalPass[x, y] / (kernelSize * kernelSize));
+            blurredPenalty = Mathf.RoundToInt((float)penaltiesVerticalPass[x, y] / (kernelSize * kernelSize));
             _grid[x, y].MovementPenalty = blurredPenalty;
 
             #region DEBUG ZONE
